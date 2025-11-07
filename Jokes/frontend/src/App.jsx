@@ -1,36 +1,65 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+import "./App.css";
 
 function App() {
-  const [jokes, setjokes] = useState([]);
+  const [jokes, setJokes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchJokes = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get("/api/jokes");
+      setJokes(response.data);
+    } catch (err) {
+      setError(err.message || "Failed to fetch jokes");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    axios
-      .get("/api/jokes")
-      .then((response) => {
-        setjokes(response.data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  });
+    fetchJokes();
+  }, [fetchJokes]);
 
   return (
-    <>
-      <div>
-        <h1>Jokes</h1>
-        <p>Jokes = {jokes.length} </p>
-        {jokes.map((joke, index) => (
-          <div key={joke.id}>
-            <h3>Joke {joke.id}</h3>
-            <p>{joke.content}</p>
-          </div>
-        ))}
-      </div>
-    </>
+    <div className="app">
+      <header className="header">
+        <h1 className="title">😂 Joke Generator</h1>
+        <p className="subtitle">Your daily dose of humor!</p>
+
+        <button
+          onClick={fetchJokes}
+          disabled={loading}
+          className={`refresh-btn ${loading ? "disabled" : ""}`}
+        >
+          {loading ? "Refreshing..." : "Get New Jokes"}
+        </button>
+      </header>
+
+      {error && <p className="error-msg">⚠️ {error}</p>}
+
+      {loading && jokes.length === 0 ? (
+        <p className="loading">Loading jokes...</p>
+      ) : jokes.length === 0 ? (
+        <p className="empty-msg">No jokes found 😔</p>
+      ) : (
+        <div className="jokes-grid">
+          {jokes.map((joke) => (
+            <div key={joke.id} className="joke-card">
+              <div className="joke-header">
+                <h2>{joke.type?.toUpperCase() || "General"}</h2>
+                <span className="joke-id">#{joke.id}</span>
+              </div>
+              <p className="setup">🗣️ {joke.setup}</p>
+              <p className="punchline">😂 {joke.punchline}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
